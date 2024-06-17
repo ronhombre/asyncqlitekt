@@ -1,5 +1,7 @@
 # asyncqlitekt (Asynchronous SQLite for Kotlin)
 
+[![Maven Central](https://img.shields.io/maven-central/v/asia.hombre/asyncqlitekt-jvm.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22asia.hombre%20asyncqlitekt%22)
+
 SQLite suffers with concurrency issues. It corrupts itself when it is accessed by multiple threads. To solve this issue,
 asyncqlitekt was born. It uses a single consumer thread to ensure data is written and read serially. That means no more
 concurrency issues where multiple accessing threads results in an SQLite crash.
@@ -18,7 +20,14 @@ Normally, this would cause concurrency issues with the SQLite database, but it i
 accessing the SQLite database.
 
 ### Dependency
-- SQLiteBundled (androidx.sqlite:sqlite-bundled:2.5.0-alpha03) <- Kotlin Multiplatform
+- SQLiteBundled (androidx.sqlite:sqlite-bundled:2.5.0-alpha03) <- Kotlin Multiplatform (Google Maven Repo)
+
+### Implementation
+```kotlin
+implementation("asia.hombre:asyncqlitekt-jvm:0.0.1")
+
+//Add google() to your repositories {} for the SQLiteBundled dependency if you don't already have it.
+```
 
 ## Usage
 ```kotlin
