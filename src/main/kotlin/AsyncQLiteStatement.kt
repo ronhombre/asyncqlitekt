@@ -12,7 +12,7 @@ class AsyncQLiteStatement
 internal constructor(
     private val sql: String,
     private val onStep: ((String, Map<Int, Any?>, Map<Int, Types>, AsyncQLiteStatement) -> Unit),
-    var result: ((AsyncQLiteResult) -> Unit)? = null
+    internal var onResult: ((AsyncQLiteResult) -> Boolean)? = null
 ): SQLiteStatement {
     private val bindingsMap = mutableMapOf<Int, Any?>()
     private val gettingsMap = mutableMapOf<Int, Types>()
@@ -64,7 +64,7 @@ internal constructor(
     /**
      * Does nothing.
      */
-    @Deprecated("This method is not used here.")
+    @Deprecated("This method is not used here.", ReplaceWith("0"))
     override fun getColumnCount(): Int {
         //DO NOTHING
 
@@ -74,7 +74,7 @@ internal constructor(
     /**
      * Does nothing.
      */
-    @Deprecated("This method is not used here.")
+    @Deprecated("This method is not used here.", ReplaceWith("\"\""))
     override fun getColumnName(index: Int): String {
         //DO NOTHING
 
@@ -193,15 +193,6 @@ internal constructor(
         onStep.invoke(sql, bindingsMap, gettingsMap, this)
 
         return false
-    }
-
-    /**
-     * Opens a function with this object as the 'this' value.
-     *
-     * Useful for binding, declaring, and reading the results.
-     */
-    inline fun <R> async(block: (AsyncQLiteStatement) -> R) {
-        block.invoke(this)
     }
 
     /**

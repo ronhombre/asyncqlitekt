@@ -24,7 +24,7 @@ accessing the SQLite database.
 
 ### Implementation
 ```kotlin
-implementation("asia.hombre:asyncqlitekt-jvm:0.0.1")
+implementation("asia.hombre:asyncqlitekt-jvm:0.0.2")
 
 //Add google() to your repositories {} for the SQLiteBundled dependency if you don't already have it.
 ```
@@ -32,7 +32,7 @@ implementation("asia.hombre:asyncqlitekt-jvm:0.0.1")
 ## Usage
 ```kotlin
 val sqlite = BundledSQLiteDriver().open("sqlite.db") //Sync
-val asyncQLiteConnection = AsyncQLiteConnection.wrap(sqlite) //Async
+val asyncQLiteConnection = AsyncQLiteConnection.wrap(sqlite) //or sqlite.async() //Async
 
 //Sync execSQL (Not concurrent or thread safe)
 asyncQLiteConnection.synced.execSQL(
@@ -86,7 +86,7 @@ asyncQLiteConnection.prepare(
     exception?.let {
         println("Failed to insert due to " + exception.message)
     }?: println("Inserted successfully!") //If exception is null, then it's a success.
-}.async {
+}.useAsync {
     it.bindText(1, "Johnathan Myers")
     it.bindInt(2, 1)
     it.step() //Adds the statement to the job queue.
@@ -109,7 +109,7 @@ asyncQLiteConnection.prepare(
     exception?.let {
         println("Failed to select due to " + exception.message)
     }?: println("Selected successfully!") //If exception is null, then it's a success.
-}.async {
+}.useAsync {
     it.bindInt(1, 1)
 
     //Declare the indexes that you want to get in the result.
@@ -118,9 +118,8 @@ asyncQLiteConnection.prepare(
     it.getInt(2) //employeeid
 
     it.step()
-    it.result = { result -> //Called for each row returned by the SQL statement.
-        println("Employee: " + result.getText(1) + " has ID: " + result.getInt(2))
-    }
+}.process { //Called for each row returned by the SQL statement.
+    println("Employee: " + it.getText(1) + " has ID: " + it.getInt(2))
 }
 
 //Blocks the thread waiting for the Job Queue to finish and closes the SQLiteConnection

@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "0.0.1"
+version = "0.0.2"
 description = "An asynchronous wrapper for SQLiteConnection to support serial database access."
 
 val projectName = "asyncqlitekt-jvm"

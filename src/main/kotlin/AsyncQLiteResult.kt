@@ -95,11 +95,12 @@ internal constructor(private val gottenMap: Map<Int, Any?>, private val columnCo
     /**
      * Checks if the [index] exists and throws an [IndexOutOfBoundsException] if it does not.
      *
-     * @throws IndexOutOfBoundsException when the [index] has not been declared before calling [AsyncQLiteStatement.step].
+     * @throws IndexOutOfBoundsException when the [index] does not exist or has not been declared before calling.
+     * [AsyncQLiteStatement.step].
      */
     private fun getValue(index: Int): Any? {
         if(!gottenMap.containsKey(index))
-            throw IndexOutOfBoundsException("This index $index does not exist!")
+            throw IndexOutOfBoundsException("This index $index does not exist. Make sure it was declared or exists in this row.")
 
         return gottenMap[index]
     }

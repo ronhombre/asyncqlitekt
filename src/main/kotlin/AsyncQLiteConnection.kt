@@ -16,7 +16,7 @@ import kotlin.concurrent.thread
  * @since 0.0.1
  */
 class AsyncQLiteConnection private constructor(val synced: SQLiteConnection) {
-    private var closing: AtomicBoolean = AtomicBoolean(false)
+    internal var closing: AtomicBoolean = AtomicBoolean(false)
     private var consumerThread: Thread? = null
     private val queue = LinkedBlockingQueue<Job>()
 
@@ -71,7 +71,8 @@ class AsyncQLiteConnection private constructor(val synced: SQLiteConnection) {
                                         AsyncQLiteStatement.Types.Text -> gottenMap[index] = it.getText(index)
                                     }
                                 }
-                                job.asyncQLiteStatement.result?.invoke(AsyncQLiteResult(gottenMap.toMap(), it.getColumnCount(), it.getColumnNames()))
+                                if(job.asyncQLiteStatement.onResult?.invoke(AsyncQLiteResult(gottenMap.toMap(), it.getColumnCount(), it.getColumnNames())) == false)
+                                    break
                             }
                             job.onSuccess?.invoke(null)
                         }
@@ -90,46 +91,9 @@ class AsyncQLiteConnection private constructor(val synced: SQLiteConnection) {
     /**
      * Adds a Job to the Job Queue and tries to start the Consumer Thread.
      */
-    private fun addJob(job: Job) {
+    internal fun addJob(job: Job) {
         queue.add(job)
         tryStartConsumerThread()
-    }
-
-    /**
-     * Adds the SQL to the Job Queue to be executed.
-     *
-     * This returns nothing.
-     *
-     * @param sql The SQL Statement.
-     * @param onSuccess Called after the SQL has been executed in the Job Queue.
-     *
-     * @throws Exception Through the onSuccess
-     */
-    fun execSQL(sql: String, onSuccess: ((error: Exception?) -> Unit)? = null) {
-        if(closing.get())
-            throw IllegalStateException("Already closed.")
-
-        addJob(Job(sql, null, null, null, onSuccess))
-    }
-
-    /**
-     * Prepares a virtual SQL Statement and adds it to the Job Queue with [AsyncQLiteStatement.step].
-     *
-     * Values to get must be declared before the [AsyncQLiteStatement.step] method is called by calling e.g. getInt(0)
-     * and ignoring the returned value.
-     *
-     * @param sql The SQL Statement.
-     * @param onSuccess Called after the SQL has been executed in the Job Queue.
-     *
-     * @throws Exception Through the onSuccess
-     */
-    fun prepare(sql: String, onSuccess: ((error: Exception?) -> Unit)? = null): AsyncQLiteStatement {
-        if(closing.get())
-            throw IllegalStateException("Already closed.")
-
-        return AsyncQLiteStatement(sql, { sqlString, bindings, gettings, asyncStatement ->
-            addJob(Job(sqlString, bindings, gettings, asyncStatement, onSuccess))
-        })
     }
 
     /**
@@ -147,6 +111,8 @@ class AsyncQLiteConnection private constructor(val synced: SQLiteConnection) {
             throw IllegalStateException("Job queue was not empty when the connection was closed.")
 
         synced.close()
+
+        listOfWrappedConnections.remove(synced)
     }
 
     /**
@@ -155,10 +121,17 @@ class AsyncQLiteConnection private constructor(val synced: SQLiteConnection) {
     internal data class Job(val statement: String, val bindingsMap: Map<Int, Any?>?, val gettingsMap: Map<Int, AsyncQLiteStatement.Types>?, val asyncQLiteStatement: AsyncQLiteStatement?, val onSuccess: ((error: Exception?) -> Unit)? = null)
 
     companion object {
+        private val listOfWrappedConnections = mutableListOf<SQLiteConnection>()
         /**
          * Wraps an [SQLiteConnection] to provide asynchronous capabilities.
          */
         fun wrap(connection: SQLiteConnection): AsyncQLiteConnection {
+            //Prevent multiple Consumer Threads running on the same SQLiteConnection
+            if(listOfWrappedConnections.contains(connection))
+                throw IllegalStateException("SQLiteConnection has already been wrapped before!")
+
+            listOfWrappedConnections.add(connection)
+
             return AsyncQLiteConnection(connection)
         }
     }
